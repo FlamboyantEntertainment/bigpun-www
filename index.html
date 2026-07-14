@@ -154,7 +154,7 @@
     </div>
     <input type="text" id="password" placeholder="say friend" autocomplete="off" />
     <br>
-    <button onclick="check()">Open</button>
+    <button onclick="check()">Enter</button>
   </div>
 
   <p id="result"></p>
@@ -175,6 +175,9 @@
     }
     document.getElementById('password').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') check();
+    });
+    document.getElementById('password').addEventListener('blur', function() {
+      this.value = 'Mellon!';
     });
   </script>
 </body>
