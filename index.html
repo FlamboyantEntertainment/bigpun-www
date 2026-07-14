@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bigpun.uk</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #0d0d0d;
+      background-image: radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d0d 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', Courier, monospace;
+      color: #c9b89a;
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.2rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadein 2s ease forwards;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0;
+      animation: fadein 2s ease 0.5s forwards;
+      margin-bottom: 2.5rem;
+      color: #8a7a6a;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+    .gate-container {
+      opacity: 0;
+      animation: fadein 2s ease 1s forwards;
+    }
+    .gate {
+      width: 200px;
+      height: 280px;
+      border: 4px solid #3d2b1f;
+      border-radius: 100px 100px 0 0;
+      position: relative;
+      background: linear-gradient(180deg, #1a1209 0%, #0d0906 100%);
+      box-shadow:
+        inset 0 0 30px rgba(0,0,0,0.8),
+        0 0 20px rgba(0,0,0,0.5);
+      margin: 0 auto 2rem;
+    }
+    .gate::before {
+      content: '';
+      position: absolute;
+      top: 10px; left: 10px; right: 10px; bottom: 0;
+      border: 2px solid #2a1d14;
+      border-radius: 90px 90px 0 0;
+    }
+    .gate-arch {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 60px;
+      border: 3px solid #3d2b1f;
+      border-bottom: none;
+      border-radius: 60px 60px 0 0;
+      background: #0d0d0d;
+    }
+    .gate-arch::after {
+      content: '';
+      position: absolute;
+      top: 8px; left: 8px; right: 8px; bottom: 0;
+      border: 2px solid #2a1d14;
+      border-bottom: none;
+      border-radius: 52px 52px 0 0;
+    }
+    .gate-runes {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      color: #5a4a3a;
+      opacity: 0.4;
+      letter-spacing: 0.5em;
+    }
+    input {
+      width: 220px;
+      padding: 0.7rem 1rem;
+      background: #1a1209;
+      border: 2px solid #3d2b1f;
+      border-radius: 4px;
+      color: #c9b89a;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      text-align: center;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    input:focus {
+      border-color: #6b4f3a;
+      box-shadow: 0 0 10px rgba(107, 79, 58, 0.3);
+    }
+    input::placeholder { color: #5a4a3a; letter-spacing: 0.15em; }
+    button {
+      margin-top: 1rem;
+      padding: 0.7rem 2rem;
+      background: #1a1209;
+      border: 2px solid #3d2b1f;
+      border-radius: 4px;
+      color: #c9b89a;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #2a1d14;
+      border-color: #6b4f3a;
+      box-shadow: 0 0 15px rgba(107, 79, 58, 0.4);
+    }
+    #result {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      min-height: 1.5em;
+      color: #8a3a3a;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #result.show { opacity: 1; }
+    @keyframes fadein {
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>bigpun.uk</h1>
+  <p class="subtitle">If you got yourself here, this is the wrong place.<br>If you are invited here, you know the drill.</p>
+
+  <div class="gate-container">
+    <div class="gate">
+      <div class="gate-arch"></div>
+      <div class="gate-runes">&#x16A0;&#x16A2;&#x16B1;&#x16A0;&#x16B9;&#x16A7;</div>
+    </div>
+    <input type="text" id="password" placeholder="say friend" autocomplete="off" />
+    <br>
+    <button onclick="check()">Open</button>
+  </div>
+
+  <p id="result"></p>
+
+  <script>
+    function check() {
+      var val = document.getElementById('password').value.trim().toLowerCase();
+      var r = document.getElementById('result');
+      r.className = '';
+      if (val === 'mellon') {
+        r.textContent = '⚔ Verification fail ⚔';
+        r.style.color = '#3a8a3a';
+      } else {
+        r.textContent = '✘ Verification fail ✘';
+        r.style.color = '#8a3a3a';
+      }
+      setTimeout(function() { r.className = 'show'; }, 50);
+    }
+    document.getElementById('password').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') check();
+    });
+  </script>
+</body>
+</html>
