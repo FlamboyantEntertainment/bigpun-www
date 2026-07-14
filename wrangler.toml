@@ -1,3 +1,5 @@
 name = "bigpun-www"
 compatibility_date = "2024-07-01"
-workers_dev = true
+
+[assets]
+directory = "."
