@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>bigpun.uk — Register</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #0d0d0d;
+      background-image: radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d0d 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', Courier, monospace;
+      color: #c9b89a;
+      text-align: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      opacity: 0;
+      animation: fadein 1.5s ease forwards;
+    }
+    .subtitle {
+      font-size: 0.8rem;
+      opacity: 0;
+      animation: fadein 1.5s ease 0.3s forwards;
+      margin-bottom: 2.5rem;
+      color: #8a7a6a;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    .gate-container {
+      opacity: 0;
+      animation: fadein 1.5s ease 0.6s forwards;
+      width: 100%;
+      max-width: 320px;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6b5a4a;
+      margin-bottom: 0.4rem;
+      text-align: left;
+    }
+    input {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: #1a1209;
+      border: 2px solid #3d2b1f;
+      border-radius: 4px;
+      color: #c9b89a;
+      font-family: 'Courier New', monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    input:focus {
+      border-color: #6b4f3a;
+      box-shadow: 0 0 10px rgba(107, 79, 58, 0.3);
+    }
+    input::placeholder { color: #4a3a2a; letter-spacing: 0.1em; }
+    button {
+      margin-top: 0.5rem;
+      width: 100%;
+      padding: 0.8rem 2rem;
+      background: #1a1209;
+      border: 2px solid #3d2b1f;
+      border-radius: 4px;
+      color: #c9b89a;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    button:hover:not(:disabled) {
+      background: #2a1d14;
+      border-color: #6b4f3a;
+      box-shadow: 0 0 15px rgba(107, 79, 58, 0.4);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 1.2rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      min-height: 1.4em;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #result.show { opacity: 1; }
+    @keyframes fadein { to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <h1>bigpun.uk</h1>
+  <p class="subtitle">Request an invite token to create your account.</p>
+
+  <div class="gate-container">
+    <form id="regForm" onsubmit="submitForm(event)">
+      <div class="form-group">
+        <label for="token">Invite Token</label>
+        <input type="text" id="token" placeholder="your-token-here" required autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="desired-username" required minlength="3" maxlength="30" pattern="[a-zA-Z0-9_.-]+" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="choose-a-password" required minlength="8" autocomplete="new-password" />
+      </div>
+      <button type="submit" id="submitBtn">Create Account</button>
+    </form>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    async function submitForm(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const result = document.getElementById('result');
+      const token = document.getElementById('token').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      result.className = '';
+      result.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      try {
+        const resp = await fetch('/auth/api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, username, password })
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+          result.textContent = '\u2694 Account created \u2694';
+          result.style.color = '#5a8a5a';
+          document.getElementById('regForm').reset();
+        } else {
+          result.textContent = '\u2715 ' + (data.error || 'Registration failed');
+          result.style.color = '#8a3a3a';
+        }
+      } catch(err) {
+        result.textContent = '\u2715 Network error — try again';
+        result.style.color = '#8a3a3a';
+      }
+
+      result.className = 'show';
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+    }
+  </script>
+</body>
+</html>
