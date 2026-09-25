@@ -2,4 +2,6 @@ name = "bigpun-www"
 compatibility_date = "2024-07-01"
 main = "./index.js"
 
-# Route /auth to this Worker; serve static assets separately via Cloudflare Pages
+routes = [
+  { pattern = "auth.bigpun.uk", zone_name = "bigpun.uk" }
+]
