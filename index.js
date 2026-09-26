@@ -1,36 +1,40 @@
 /**
  * bigpun.uk auth worker
  * Routes:
- *   GET  /auth          -> serve auth.html (registration form)
+ *   GET  /auth          -> serve registration form
  *   POST /auth/api      -> validate token + create user via Synapse admin API
+ *
+ * Secrets (set via `wrangler secret put`):
+ *   - SYNAPSE_ADMIN_TOKEN: real admin access token (Bearer)
+ *   - SYNAPSE_SHARED_SECRET: registration HMAC secret
  */
 
 const SYNAPSE_URL = 'https://matrix.bigpun.uk';
-const SYNAPSE_ADMIN_SECRET = '_2W.h@l4oM2HaE+rRiZk+oSQ=#yO=_QEpP4dEWCvK.-D0jQ@W=';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Route: registration form
     if (path === '/auth' && request.method === 'GET') {
       return new Response(renderHTML(), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
     }
 
-    // Route: registration API
     if (path === '/auth/api' && request.method === 'POST') {
-      return handleRegister(request);
+      return handleRegister(request, env);
     }
 
-    // Everything else -> static assets (existing behavior)
-    return env.ASSETS.fetch(request);
+    if (path === '/favicon.ico') {
+      return new Response(null, { status: 204 });
+    }
+
+    return new Response('Not found', { status: 404 });
   }
 };
 
-// ─── HTML form (inline, no separate file needed) ────────────────────────────
+// ─── HTML form ───────────────────────────────────────────────────────────────
 function renderHTML() {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -44,96 +48,21 @@ function renderHTML() {
       min-height: 100vh;
       background: #0d0d0d;
       background-image: radial-gradient(ellipse at 50% 30%, #1a1a2e 0%, #0d0d0d 70%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Courier New', Courier, monospace;
-      color: #c9b89a;
-      text-align: center;
-      padding: 2rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-family: 'Courier New', Courier, monospace; color: #c9b89a; text-align: center; padding: 2rem;
     }
-    h1 {
-      font-size: 1rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-      opacity: 0;
-      animation: fadein 1.5s ease forwards;
-    }
-    .subtitle {
-      font-size: 0.8rem;
-      opacity: 0;
-      animation: fadein 1.5s ease 0.3s forwards;
-      margin-bottom: 2.5rem;
-      color: #8a7a6a;
-      max-width: 400px;
-      line-height: 1.6;
-    }
-    .gate-container {
-      opacity: 0;
-      animation: fadein 1.5s ease 0.6s forwards;
-      width: 100%;
-      max-width: 320px;
-    }
+    h1 { font-size: 1rem; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 0.5rem; opacity: 0; animation: fadein 1.5s ease forwards; }
+    .subtitle { font-size: 0.8rem; opacity: 0; animation: fadein 1.5s ease 0.3s forwards; margin-bottom: 2.5rem; color: #8a7a6a; max-width: 400px; line-height: 1.6; }
+    .gate-container { opacity: 0; animation: fadein 1.5s ease 0.6s forwards; width: 100%; max-width: 320px; }
     .form-group { margin-bottom: 1rem; }
-    label {
-      display: block;
-      font-size: 0.7rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #6b5a4a;
-      margin-bottom: 0.4rem;
-      text-align: left;
-    }
-    input {
-      width: 100%;
-      padding: 0.7rem 1rem;
-      background: #1a1209;
-      border: 2px solid #3d2b1f;
-      border-radius: 4px;
-      color: #c9b89a;
-      font-family: 'Courier New', monospace;
-      font-size: 0.95rem;
-      letter-spacing: 0.1em;
-      text-align: center;
-      outline: none;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    input:focus {
-      border-color: #6b4f3a;
-      box-shadow: 0 0 10px rgba(107, 79, 58, 0.3);
-    }
+    label { display: block; font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: #6b5a4a; margin-bottom: 0.4rem; text-align: left; }
+    input { width: 100%; padding: 0.7rem 1rem; background: #1a1209; border: 2px solid #3d2b1f; border-radius: 4px; color: #c9b89a; font-family: 'Courier New', monospace; font-size: 0.95rem; letter-spacing: 0.1em; text-align: center; outline: none; transition: border-color 0.3s, box-shadow 0.3s; }
+    input:focus { border-color: #6b4f3a; box-shadow: 0 0 10px rgba(107, 79, 58, 0.3); }
     input::placeholder { color: #4a3a2a; letter-spacing: 0.1em; }
-    button {
-      margin-top: 0.5rem;
-      width: 100%;
-      padding: 0.8rem 2rem;
-      background: #1a1209;
-      border: 2px solid #3d2b1f;
-      border-radius: 4px;
-      color: #c9b89a;
-      font-family: 'Courier New', monospace;
-      font-size: 0.85rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    button:hover:not(:disabled) {
-      background: #2a1d14;
-      border-color: #6b4f3a;
-      box-shadow: 0 0 15px rgba(107, 79, 58, 0.4);
-    }
+    button { margin-top: 0.5rem; width: 100%; padding: 0.8rem 2rem; background: #1a1209; border: 2px solid #3d2b1f; border-radius: 4px; color: #c9b89a; font-family: 'Courier New', monospace; font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: all 0.3s; }
+    button:hover:not(:disabled) { background: #2a1d14; border-color: #6b4f3a; box-shadow: 0 0 15px rgba(107, 79, 58, 0.4); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    #result {
-      margin-top: 1.2rem;
-      font-size: 0.85rem;
-      letter-spacing: 0.1em;
-      min-height: 1.4em;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
+    #result { margin-top: 1.2rem; font-size: 0.85rem; letter-spacing: 0.1em; min-height: 1.4em; opacity: 0; transition: opacity 0.3s; }
     #result.show { opacity: 1; }
     @keyframes fadein { to { opacity: 1; } }
   </style>
@@ -149,7 +78,7 @@ function renderHTML() {
       </div>
       <div class="form-group">
         <label for="username">Username</label>
-        <input type="text" id="username" placeholder="desired-username" required minlength="3" maxlength="30" pattern="[a-zA-Z0-9_.-]+" autocomplete="username" />
+        <input type="text" id="username" placeholder="desired-username" required minlength="3" maxlength="30" autocomplete="username" />
       </div>
       <div class="form-group">
         <label for="password">Password</label>
@@ -160,41 +89,56 @@ function renderHTML() {
     <p id="result"></p>
   </div>
   <script>
-    async function submitForm(e) {
+    // Username allowed chars: letters, digits, underscores, dots, hyphens
+    var USERNAME_RE = new RegExp('^[a-zA-Z0-9._-]+$');
+    function submitForm(e) {
       e.preventDefault();
-      const btn = document.getElementById('submitBtn');
-      const result = document.getElementById('result');
-      const token = document.getElementById('token').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
+      var btn = document.getElementById('submitBtn');
+      var result = document.getElementById('result');
+      var token = document.getElementById('token').value.trim();
+      var username = document.getElementById('username').value.trim();
+      var password = document.getElementById('password').value;
 
       result.className = '';
       result.textContent = '';
       btn.disabled = true;
       btn.textContent = 'Creating...';
 
-      try {
-        const resp = await fetch('/auth/api', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, username, password })
-        });
-        const data = await resp.json();
-        if (resp.ok) {
-          result.textContent = '\u2694 Account created \u2694';
+      if (!USERNAME_RE.test(username)) {
+        result.textContent = '\\u2715 Username may only contain letters, numbers, dots, underscores and hyphens';
+        result.style.color = '#8a3a3a';
+        result.className = 'show';
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+        return;
+      }
+
+      fetch('/auth/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token, username: username, password: password })
+      })
+      .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
+      .then(function(r) {
+        if (r.ok) {
+          result.textContent = '\\u2694 Account created \\u2014 ' + (r.data.user_id || '');
           result.style.color = '#5a8a5a';
           document.getElementById('regForm').reset();
         } else {
-          result.textContent = '\u2715 ' + (data.error || 'Registration failed');
+          result.textContent = '\\u2715 ' + (r.data.error || 'Registration failed');
           result.style.color = '#8a3a3a';
         }
-      } catch(err) {
-        result.textContent = '\u2715 Network error \u2014 try again';
+        result.className = 'show';
+      })
+      .catch(function() {
+        result.textContent = '\\u2715 Network error \\u2014 try again';
         result.style.color = '#8a3a3a';
-      }
-      result.className = 'show';
-      btn.disabled = false;
-      btn.textContent = 'Create Account';
+        result.className = 'show';
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      });
     }
   </script>
 </body>
@@ -202,7 +146,7 @@ function renderHTML() {
 }
 
 // ─── Registration handler ─────────────────────────────────────────────────────
-async function handleRegister(request) {
+async function handleRegister(request, env) {
   let body;
   try {
     body = await request.json();
@@ -212,60 +156,56 @@ async function handleRegister(request) {
 
   const { token, username, password } = body;
 
-  // Basic validation
   if (!token || !username || !password) {
     return jsonResponse({ error: 'Missing fields' }, 400);
   }
-  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
     return jsonResponse({ error: 'Username may only contain letters, numbers, dots, underscores and hyphens' }, 400);
   }
   if (password.length < 8) {
     return jsonResponse({ error: 'Password must be at least 8 characters' }, 400);
   }
 
+  const adminToken = env.SYNAPSE_ADMIN_TOKEN;
+  const sharedSecret = env.SYNAPSE_SHARED_SECRET;
+  if (!adminToken || !sharedSecret) {
+    return jsonResponse({ error: 'Server misconfigured' }, 500);
+  }
+
   // Step 1: Validate the registration token via Synapse admin API
   const tokenRes = await fetch(`${SYNAPSE_URL}/_synapse/admin/v1/registration_tokens/${encodeURIComponent(token)}`, {
-    headers: { 'Authorization': `Bearer ${SYNAPSE_ADMIN_SECRET}` },
+    headers: { 'Authorization': `Bearer ${adminToken}` },
   });
 
   if (!tokenRes.ok) {
-    const err = await tokenRes.json().catch(() => ({}));
     if (tokenRes.status === 404) {
       return jsonResponse({ error: 'Invalid token' }, 400);
     }
+    const err = await tokenRes.json().catch(() => ({}));
     return jsonResponse({ error: err.error || 'Token validation failed' }, tokenRes.status);
   }
 
   const tokenInfo = await tokenRes.json();
 
-  // Check if token has uses remaining
   if (tokenInfo.uses_allowed !== null && tokenInfo.completed >= tokenInfo.uses_allowed) {
     return jsonResponse({ error: 'Token has already been used' }, 400);
   }
-
-  // Check if token is expired
   if (tokenInfo.expiry_time !== null && Date.now() > tokenInfo.expiry_time) {
     return jsonResponse({ error: 'Token has expired' }, 400);
   }
 
-  // Step 2: Register the user via Synapse admin API
-  // Get a fresh nonce
-  const nonceRes = await fetch(`${SYNAPSE_URL}/_synapse/admin/v1/register`, {
-    headers: { 'Authorization': `Bearer ${SYNAPSE_ADMIN_SECRET}` },
-  });
-
+  // Step 2: Register the user via /admin/v1/register (uses shared_secret + nonce + HMAC)
+  const nonceRes = await fetch(`${SYNAPSE_URL}/_synapse/admin/v1/register`);
   if (!nonceRes.ok) {
     return jsonResponse({ error: 'Could not reach Matrix server' }, 502);
   }
-
   const { nonce } = await nonceRes.json();
 
-  // Generate MAC (HMAC-SHA1 of the registration request)
-  const mac = await generateMAC(nonce, username, password, false, SYNAPSE_ADMIN_SECRET);
+  const mac = await generateMAC(nonce, username, password, false, sharedSecret);
 
   const regRes = await fetch(`${SYNAPSE_URL}/_synapse/admin/v1/register`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${SYNAPSE_ADMIN_SECRET}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       nonce,
       username,
@@ -277,7 +217,11 @@ async function handleRegister(request) {
 
   if (!regRes.ok) {
     const err = await regRes.json().catch(() => ({}));
-    return jsonResponse({ error: err.error || 'Registration failed' }, regRes.status);
+    const msg = err.error || 'Registration failed';
+    if (msg.toLowerCase().includes('user in use') || msg.toLowerCase().includes('already taken')) {
+      return jsonResponse({ error: 'Username already taken' }, 400);
+    }
+    return jsonResponse({ error: msg }, regRes.status);
   }
 
   const result = await regRes.json();
@@ -296,7 +240,7 @@ function jsonResponse(data, status) {
 }
 
 async function generateMAC(nonce, username, password, admin, secret) {
-  const msg = `\x00${nonce}\x00${username}\x00${password}\x00${admin ? '1' : '0'}`;
+  const adminStr = admin ? 'admin' : 'notadmin';
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -304,7 +248,8 @@ async function generateMAC(nonce, username, password, admin, secret) {
     false,
     ['sign'],
   );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg));
+  const data = new TextEncoder().encode(`${nonce}\x00${username}\x00${password}\x00${adminStr}`);
+  const sig = await crypto.subtle.sign('HMAC', key, data);
   return Array.from(new Uint8Array(sig))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
