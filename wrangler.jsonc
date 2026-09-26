@@ -1,14 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bigpun-www",
-  "compatibility_date": "2026-07-14",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": "."
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
+  "compatibility_date": "2024-07-01",
+  "main": "./index.js",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "auth.bigpun.uk", "zone_name": "bigpun.uk" }
   ]
 }
